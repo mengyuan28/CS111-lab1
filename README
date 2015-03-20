@@ -1,0 +1,39 @@
+Lab 1C:
+Done By: 
+Mengyuan Yu	204151211
+Tianyi Xia	104129701
+
+Clock Choice Justification:
+finsih time:
+We use the timespec object, which record time by seconds and nanoseconds.
+Upon completetion of a simple command, we call clock_gettime(CLOCK_REALTIME, &abstime) in parent, where abstime is the time spec object, then we convert its nanoseconds part to seconds add them up, and return that.
+
+real time:
+To get the most accurate real time period, we call clco_gettime with monotonic flag, which represents seconds since the system booted, we get call this twice, once in parent before we are about to fork, and once in parent after we finished exec. 
+The abslute time of monotonic time is not vey meaningful, but it is the relative time, which is the real time that we want. We use monotonic time instead of real time because unix NTP problem andleap seconds.
+
+src:
+http://apenwarr.ca/log/?m=201208#10
+
+user-time:
+sys-time:
+For Both usr & system CPU time, we get them by subtracting two cummalitive CPU time. One before forking and one after waitpid. Each timestamp is calculated using getrusage function. We record the absolute time for both child and parent, and we add them togather.
+A minor note is that getusage return a different time object than gettime: timeval, whose second component is represented in microsecond, we need a different conversion when adding them up
+
+
+Questions:
+
+Answering the following four questions:
+Q: Must the first column of the log output be in nondecreasing order? If not, give a counterexample.
+A: Yes, the first column of the log output is in nondecreasing order. The first column is the finish time, which is cumulative. Since our lab does not support any parallelism,it should be nondecreasing.
+This is based on our assumption that is is right side of the pipe can finish first before the left side of the pipe.     
+
+Q:Can the second column be less than the sum of the third and fourth columns, other than due to rounding errors? If so, explain why.
+A: NO. In the ideal case that the clock is perfectly precise, the sum of the user time and system time should be equal to the real time. Since our lab does not have multiple threads, the user+sys can not exceed the real time.
+
+
+Q:Can the second, third, or fourth column ever be negative? Briefly explain.
+A: No. If the real time is negative, process is completed in a negative time, which is impossible. The usr time and sys time are the usage of the CPU, which can not be negative.
+
+Q:How did you test your shell to make sure that log lines are not interleaved? If you used test scripts, submit a copy of the scripts as part of your submission tarball.
+A:We use commands such as echo AAAA | echo BBBBBB, to check whether the result is interleaved. After we added waitpid to wait children process to exit in the pipeline case, there should not be any interleaved log lines. 
